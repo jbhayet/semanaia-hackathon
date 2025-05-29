@@ -32,6 +32,7 @@ for to_merge in to_merges:
         # Drop the second colonia
         cdmx_colonias = cdmx_colonias.drop(index=to_merge[i])
 cdmx_colonias['n_bike_stations'] = cdmx_colonias.apply(lambda x: geo_cdmx_stations.within(x.geometry).sum(), axis=1)
+cdmx_colonias.to_csv('data/cdmx_zones.csv', index=False)
 
 ##################################################################################################
 # Read the Lyon stations CSV
