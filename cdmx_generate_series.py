@@ -1,7 +1,7 @@
 # Open the cdmx flow file and print the first 10 lines
 import sys
 import os
-import pandas as pd
+import pandas as pd # type: ignore
 
 
 cdmx_flow_file = 'data/cdmx_data_flow.csv'
