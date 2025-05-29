@@ -7,7 +7,7 @@ import sys
 
 
 
-
+##################################################################################################
 # Read the Cdmx stations json
 cdmx_stations = pd.read_json('data/cdmx_stations.json')
 cdmx_stations = pd.DataFrame.from_records(cdmx_stations['data'].stations)
@@ -32,12 +32,11 @@ for to_merge in to_merges:
         # Drop the second colonia
         cdmx_colonias = cdmx_colonias.drop(index=to_merge[i])
 cdmx_colonias['n_bike_stations'] = cdmx_colonias.apply(lambda x: geo_cdmx_stations.within(x.geometry).sum(), axis=1)
-print(cdmx_colonias['n_bike_stations'])
 
-
+##################################################################################################
 # Read the Lyon stations CSV
 lyon_stations = pd.read_csv('data/lyon_stations.csv', index_col=0)
-lyon_stations = lyon_stations.drop(columns=['adresse1','adresse2','code_insee','numdansarrondissement','nbbornettes','stationbonus','achevement','validite','pole']) 
+lyon_stations = lyon_stations.drop(columns=['adresse1','adresse2','code_insee','numdansarrondissement','stationbonus','achevement','validite','pole']) 
 lyon_stations['commune'] = lyon_stations['commune'].astype('category')
 # Create a DataFrame with a geometry containing the Points
 geo_lyon_stations = gpd.GeoDataFrame(
@@ -59,47 +58,44 @@ for to_merge in to_merges:
 # Villeurbanne is very large, so we will split it into two parts
 # Determine the average point of the geometry
 centroid = lyon_communes.loc[208,'geometry'].centroid
-# Create a rectangle as a geodataframe, that will be used to split the geometry
-from shapely.geometry import LineString
-line = LineString([(centroid.x, centroid.y - 1000), (centroid.x, centroid.y + 1000)])
 # Create a GeoDataframe with the sub-polygon above the line
 from shapely.geometry import Polygon
 polygon = lyon_communes.loc[208, 'geometry']
-polygons = [polygon]
-left_polys = []
-right_polys = []
-# Split the polygon by the vertical line at centroid.x
-left = polygon.intersection(Polygon([
-        (polygon.bounds[0]-1000, polygon.bounds[1]-1000),
-        (centroid.x, polygon.bounds[1]-1000),
-        (centroid.x, polygon.bounds[3]+1000),
-        (polygon.bounds[0]-1000, polygon.bounds[3]+1000)
+# Split the polygon by the infinite horizontal line passing through centroid
+far = 1000000
+up = polygon.intersection(Polygon([
+        (polygon.bounds[0]-far, centroid.y),
+        (centroid.x+far, centroid.y),
+        (centroid.x+far, polygon.bounds[3]+far),
+        (polygon.bounds[0]-far, polygon.bounds[3]+far)
     ]))
-right = polygon.intersection(Polygon([
-        (centroid.x, polygon.bounds[1]-1000),
-        (polygon.bounds[2]+1000, polygon.bounds[1]-1000),
-        (polygon.bounds[2]+1000, polygon.bounds[3]+1000),
-        (centroid.x, polygon.bounds[3]+1000)
+down = polygon.intersection(Polygon([
+        (polygon.bounds[0]-far, centroid.y),
+        (centroid.x+far, centroid.y),
+        (centroid.x+far, polygon.bounds[1]-far),
+        (polygon.bounds[0]-far, polygon.bounds[1]-far)
     ]))
-
-print(left,right)
 # Replace the original geometry with the left part, and add the right part as a new row
-lyon_communes.loc[208, 'geometry'] = left
-# new_idx = lyon_communes.index.max() + 1
-# lyon_communes.loc[new_idx] = lyon_communes.loc[208]
-# lyon_communes.at[new_idx, 'geometry'] = Polygon([p for p in right_polys if p.geom_type in ['Polygon', 'MultiPolygon']])
-
+lyon_communes.loc[208, 'geometry'] = up
+# Change the commune name to Villeurbanne nord
+lyon_communes.loc[209] = lyon_communes.loc[208]
+lyon_communes.loc[209, 'geometry'] = down
+lyon_communes.loc[208, 'nom'] = 'Villeurbanne nord'
+lyon_communes.loc[209, 'nom'] = 'Villeurbanne sud'
 lyon_communes['n_bike_stations'] = lyon_communes.apply(lambda x: geo_lyon_stations.within(x.geometry).sum(), axis=1)
-print(lyon_communes['n_bike_stations'])
+# Save the data to CSV files
+lyon_communes.to_csv('data/lyon_zones.csv', index=False)
 
 
+##################################################################################################
+# Plotting the data
 # Create a figure with two subplots
 fig, ax = plt.subplots(1,2,figsize=(8, 6))
 
 # Plotting the Lyon data
 ax[0].set_title('Lyon Bike Stations')
 # Plot the stations in Lyon
-geo_lyon_stations.plot("commune", cmap="OrRd", ax=ax[0])
+geo_lyon_stations.plot("nbbornettes", cmap="OrRd", ax=ax[0])
 # Plot the Lyon communes
 lyon_communes.boundary.plot(ax=ax[0], color='black')
 # Plot the communes ids too
