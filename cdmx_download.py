@@ -1,5 +1,5 @@
 # Description: This script downloads the Ecobici dataset from the specified URL and saves it to a local file.
-import pandas as pd
+import pandas as pd # type: ignore
 import sys
 import requests
 import io

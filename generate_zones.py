@@ -1,8 +1,8 @@
-import pandas as pd
-import geopandas as gpd
-import contextily as ctx
-import matplotlib.pyplot as plt
-from matplotlib_scalebar.scalebar import ScaleBar
+import pandas as pd # type: ignore
+import geopandas as gpd # type: ignore
+import contextily as ctx # type: ignore
+import matplotlib.pyplot as plt # type: ignore
+from matplotlib_scalebar.scalebar import ScaleBar # type: ignore
 import sys
 
 
@@ -60,7 +60,7 @@ for to_merge in to_merges:
 # Determine the average point of the geometry
 centroid = lyon_communes.loc[208,'geometry'].centroid
 # Create a GeoDataframe with the sub-polygon above the line
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon # type: ignore
 polygon = lyon_communes.loc[208, 'geometry']
 # Split the polygon by the infinite horizontal line passing through centroid
 far = 1000000
