@@ -10,14 +10,56 @@ rawDataAll = pd.DataFrame()
 
 def download_data(url):
     """Download data from the specified URL and return it as a pandas DataFrame."""
+    print(f"--- Downloading data from {url}")    
     response = requests.get(url)
     if response.status_code != 200:
         print(f"xxx Error: Unable to download data, status code {response.status_code}")
         sys.exit(1)
-    return pd.read_csv(io.StringIO(response.text))
+    rawData = pd.read_csv(io.StringIO(response.text))
+    if 'Genero_usuario' in rawData.columns:
+        rawData = rawData.drop(columns=['Genero_usuario'])  # Remove the index column if it exists
+    if 'Genero_Usuario' in rawData.columns:
+        rawData = rawData.drop(columns=['Genero_Usuario'])  # Remove the index column if it exists
+    if 'Edad_usuario' in rawData.columns:
+        rawData = rawData.drop(columns=['Edad_usuario'])  # Remove the index column if it exists
+    if 'Edad_Usuario' in rawData.columns:
+        rawData = rawData.drop(columns=['Edad_Usuario'])  # Remove the index column if it exists
+    if 'Bici' in rawData.columns:
+        rawData = rawData.drop(columns=['Bici'])  # Remove the index column if it exists
+
+    # Some cleaning: names of the stations. For some of them, the name is repeated twice, so we will keep only the first one
+    rawData.replace('445-446', '445', inplace=True)
+    rawData.replace('390-391', '390', inplace=True)
+    rawData.replace('107-108', '107', inplace=True)
+    rawData.replace('158-159', '158', inplace=True)
+    rawData.replace('192-193', '192', inplace=True)
+    rawData.replace('264-275', '264', inplace=True)
+    rawData.replace('273-274', '273', inplace=True)
+    rawData.replace('271-272', '271', inplace=True)
+    rawData.replace('268-269', '268', inplace=True)
+    # More cleaning: rename columns to have a consistent format
+    if 'Hora_retiro' in rawData.columns:
+        rawData.rename(columns={'Hora_retiro': 'Hora_Retiro'}, inplace=True)
+    if 'Hora_arribo' in rawData.columns:
+        rawData.rename(columns={'Hora_arribo': 'Hora_Arribo'}, inplace=True)
+    if 'Hora_arribo' in rawData.columns:
+        rawData.rename(columns={'Hora_arribo': 'Hora_Arribo'}, inplace=True)
+    if 'CE_arribo' in rawData.columns:
+        rawData.rename(columns={'CE_arribo': 'Ciclo_Estacion_Arribo'}, inplace=True)
+    if 'Ciclo_EstacionArribo' in rawData.columns:
+        rawData.rename(columns={'Ciclo_EstacionArribo': 'Ciclo_Estacion_Arribo'}, inplace=True)
+    if 'CE_retiro' in rawData.columns:
+        rawData.rename(columns={'CE_retiro': 'Ciclo_Estacion_Retiro'}, inplace=True)
+    if 'Fecha_retiro' in rawData.columns:
+        rawData.rename(columns={'Fecha_retiro': 'Fecha_Retiro'}, inplace=True)
+    if 'Fecha_arribo' in rawData.columns:
+        rawData.rename(columns={'Fecha_arribo': 'Fecha Arribo'}, inplace=True)
+    rawData['Ciclo_Estacion_Retiro'] = rawData['Ciclo_Estacion_Retiro'].astype('uint16',errors='ignore')
+    rawData['Ciclo_Estacion_Arribo']  = rawData['Ciclo_Estacion_Arribo'].astype('uint16',errors='ignore')
+    return rawData
 
 # Set to true to download the data, or false to read from a local file
-download = False
+download = True
 
 if download:
     urls = ['https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/05/2022-01.csv',\
@@ -31,32 +73,35 @@ if download:
         'https://ecobici.cdmx.gob.mx/wp-content/uploads/2023/08/202209.csv']
     # URL to download the Ecobici dataset
     for url in urls:
-        print(f"--- Downloading data from {url}")
+        rawData = download_data(url)
         # Add the result of the request to the main DataFrame
-        rawDataAll = pd.concat([rawDataAll,download_data(url)], axis=0)
+        rawDataAll = pd.concat([rawDataAll,rawData], axis=0)
 
+if download:
     # URL to download the Ecobici dataset
     for txt in ['10','11','12']:
         # Download the dataset for month i+1
         url = "https://ecobici.cdmx.gob.mx/wp-content/uploads/2023/10/ecobici_2022_{}.csv".format(txt)
-        print(f"--- Downloading data for month {txt} from {url}")
+        rawData = download_data(url)
         # Add the result of the request to the main DataFrame
-        rawDataAll = pd.concat([rawDataAll,download_data(url)], axis=0)
+        rawDataAll = pd.concat([rawDataAll,rawData], axis=0)
 
+if download:
     # URL to download the Ecobici dataset
     for txt in ['01','02','03','04','05','06','07','08','09']:
         # Download the dataset for month i+1
         url = "https://ecobici.cdmx.gob.mx/wp-content/uploads/2023/10/ecobici_2023_{}.csv".format(txt)
-        print(f"--- Downloading data for month {txt} from {url}")
+        rawData = download_data(url)
         # Add the result of the request to the main DataFrame
-        rawDataAll = pd.concat([rawDataAll,download_data(url)], axis=0)
+        rawDataAll = pd.concat([rawDataAll,rawData], axis=0)
 
+if download:
     urls = ['https://ecobici.cdmx.gob.mx/wp-content/uploads/2023/11/datosabiertos_2023_octubre.csv','https://ecobici.cdmx.gob.mx/wp-content/uploads/2023/12/datosabiertos_2023_noviembre.csv','https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/01/datos_abiertos_2023_diciembre.csv']
     # URL to download the Ecobici dataset
     for url in urls:
-        print(f"--- Downloading data from {url}")
+        rawData = download_data(url)
         # Add the result of the request to the main DataFrame
-        rawDataAll = pd.concat([rawDataAll,download_data(url)], axis=0)
+        rawDataAll = pd.concat([rawDataAll,rawData], axis=0)
 
 # Save the data to a CSV file
 if not rawDataAll.empty:
@@ -65,14 +110,19 @@ if not rawDataAll.empty:
     rawDataAll.to_csv('data/cdmx_data_trips.csv', index=False)
 
 # Read the saved data
-df                 = pd.read_csv('data/cdmx_data_trips.csv')
-df                 = df.drop(columns=['Genero_Usuario','Edad_Usuario','Bici'])
+dtype_dict = {
+    'Ciclo_Estacion_Retiro': 'uint16',
+    'Ciclo_Estacion_Arribo': 'uint16',
+    'Fecha_Retiro': 'string',
+    'Fecha Arribo': 'string',
+    'Hora_Retiro': 'string',
+    'Hora_Arribo': 'string'
+}
+df                 = pd.read_csv('data/cdmx_data_trips.csv',dtype=dtype_dict)
 df['Fecha_Retiro'] = pd.to_datetime(df['Fecha_Retiro'], format='%d/%m/%Y').dt.date
 df['Fecha Arribo'] = pd.to_datetime(df['Fecha Arribo'], format='%d/%m/%Y').dt.date
 df['Hora_Retiro']  = pd.to_datetime(df['Hora_Retiro'], format='%H:%M:%S').dt.hour
 df['Hora_Arribo']  = pd.to_datetime(df['Hora_Arribo'], format='%H:%M:%S').dt.hour
-df['Ciclo_Estacion_Retiro'] = df['Ciclo_Estacion_Retiro'].astype('category')
-df['Ciclo_EstacionArribo']  = df['Ciclo_EstacionArribo'].astype('category')
 
 # Group by the station, the date and the hour of withdrawal
 grouped_retiro = df.groupby(['Ciclo_Estacion_Retiro', 'Fecha_Retiro', 'Hora_Retiro'],observed=False).agg(
@@ -80,15 +130,19 @@ grouped_retiro = df.groupby(['Ciclo_Estacion_Retiro', 'Fecha_Retiro', 'Hora_Reti
 ).reset_index().rename(columns={'Ciclo_Estacion_Retiro': 'estacion', 'Fecha_Retiro': 'date', 'Hora_Retiro': 'hour'})
 
 # Group by the station, the date and the hour of arrival
-grouped_arribo = df.groupby(['Ciclo_EstacionArribo', 'Fecha Arribo', 'Hora_Arribo'],observed=False).agg(
-    n_trips_in=('Ciclo_EstacionArribo', 'size')
-).reset_index().rename(columns={'Ciclo_EstacionArribo': 'estacion', 'Fecha Arribo': 'date', 'Hora_Arribo': 'hour'})
+grouped_arribo = df.groupby(['Ciclo_Estacion_Arribo', 'Fecha Arribo', 'Hora_Arribo'],observed=False).agg(
+    n_trips_in=('Ciclo_Estacion_Arribo', 'size')
+).reset_index().rename(columns={'Ciclo_Estacion_Arribo': 'estacion', 'Fecha Arribo': 'date', 'Hora_Arribo': 'hour'})
 
-
+print(grouped_arribo.head())
+print(grouped_retiro.head())
+print(grouped_arribo['estacion'].unique())
+sys.exit(0)
 
 # Merge the two dataframes based on the columns estacion, date, hour
 merged = grouped_arribo.merge(grouped_retiro, on=['estacion', 'date', 'hour'], how='outer').reset_index()
 merged.drop(columns=['index'], inplace=True)
+
 
 # Because there can be NaN, we will replace them by zero
 merged.fillna(0, inplace=True)
@@ -109,4 +163,6 @@ for date in date_range:
 merged['holiday'] = merged['date'].apply(lambda x: holidays_dict.get(pd.to_datetime(x), 0))
 merged['holiday'] = merged['holiday'].astype('uint8')
 
+# Print 100 random records
+print(merged.sample(100))
 merged.to_csv('data/cdmx_data_flow.csv')
