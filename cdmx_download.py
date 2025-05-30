@@ -37,6 +37,7 @@ def download_data(url):
     rawData.replace('273-274', '273', inplace=True)
     rawData.replace('271-272', '271', inplace=True)
     rawData.replace('268-269', '268', inplace=True)
+
     # More cleaning: rename columns to have a consistent format
     if 'Hora_retiro' in rawData.columns:
         rawData.rename(columns={'Hora_retiro': 'Hora_Retiro'}, inplace=True)
@@ -53,24 +54,51 @@ def download_data(url):
     if 'Fecha_retiro' in rawData.columns:
         rawData.rename(columns={'Fecha_retiro': 'Fecha_Retiro'}, inplace=True)
     if 'Fecha_arribo' in rawData.columns:
-        rawData.rename(columns={'Fecha_arribo': 'Fecha Arribo'}, inplace=True)
-    rawData['Ciclo_Estacion_Retiro'] = rawData['Ciclo_Estacion_Retiro'].astype('uint16',errors='ignore')
-    rawData['Ciclo_Estacion_Arribo']  = rawData['Ciclo_Estacion_Arribo'].astype('uint16',errors='ignore')
+        rawData.rename(columns={'Fecha_arribo': 'Fecha_Arribo'}, inplace=True)
+    if 'Fecha Arribo' in rawData.columns:
+        rawData.rename(columns={'Fecha Arribo': 'Fecha_Arribo'}, inplace=True)
+    # Check the date format 
+    try:
+        # If we can parse the dates with the format '%d/%m/%Y', we will use it
+        rawData['Fecha_Retiro'] = pd.to_datetime(rawData['Fecha_Retiro'], format='%d/%m/%Y', errors='raise')
+        rawData['Fecha_Arribo'] = pd.to_datetime(rawData['Fecha_Arribo'], format='%d/%m/%Y', errors='raise')
+    except ValueError as e:
+        try:
+            # Otherwise, we will try to parse the dates with the format '%d/%m/%y'
+            rawData['Fecha_Retiro'] = rawData['Fecha_Retiro'].map(lambda x: str(x).replace("/2022", "/22"))
+            rawData['Fecha_Arribo'] = rawData['Fecha_Arribo'].map(lambda x: str(x).replace("/2022", "/22"))
+            rawData['Fecha_Retiro'] = rawData['Fecha_Retiro'].map(lambda x: str(x).replace("/2023", "/23"))
+            rawData['Fecha_Arribo'] = rawData['Fecha_Arribo'].map(lambda x: str(x).replace("/2023", "/23"))
+            rawData['Fecha_Retiro'] = pd.to_datetime(rawData['Fecha_Retiro'], format='%d/%m/%y', errors='raise')
+            rawData['Fecha_Arribo'] = pd.to_datetime(rawData['Fecha_Arribo'], format='%d/%m/%y', errors='raise')
+        except ValueError as e:
+            print(f"xxx Error: {e}")
+            # If the date format is not correct, we will exit the program
+            sys.exit(1)
+
+    # Ensure that the columns 'Ciclo_Estacion_Retiro' and 'Ciclo_Estacion_Arribo' are numeric
+    rawData['Ciclo_Estacion_Retiro'] = pd.to_numeric(rawData['Ciclo_Estacion_Retiro'], errors='coerce',downcast='integer')
+    rawData['Ciclo_Estacion_Arribo'] = pd.to_numeric(rawData['Ciclo_Estacion_Arribo'], errors='coerce',downcast='integer')
+    rawData.dropna(subset=['Ciclo_Estacion_Retiro', 'Ciclo_Estacion_Arribo'], inplace=True)
+    rawData['Ciclo_Estacion_Retiro'] = pd.to_numeric(rawData['Ciclo_Estacion_Retiro'], errors='coerce',downcast='integer')
+    rawData['Ciclo_Estacion_Arribo'] = pd.to_numeric(rawData['Ciclo_Estacion_Arribo'], errors='coerce',downcast='integer')
     return rawData
 
 # Set to true to download the data, or false to read from a local file
 download = True
 
 if download:
-    urls = ['https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/05/2022-01.csv',\
-        'https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/05/2022-02.csv',\
-        'https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/05/2022-03.csv',\
-        'https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/05/2022-04.csv',\
-        'https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/05/2022-05.csv',\
-        'https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/05/2022-06.csv',\
-        'https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/05/2022-07.csv',\
-        'https://ecobici.cdmx.gob.mx/wp-content/uploads/2023/10/2022-08.csv',\
-        'https://ecobici.cdmx.gob.mx/wp-content/uploads/2023/08/202209.csv']
+    urls = [\
+    'https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/05/2022-01.csv',\
+    'https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/05/2022-02.csv',\
+    'https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/05/2022-03.csv',\
+    'https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/05/2022-04.csv',\
+    'https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/05/2022-05.csv',\
+    'https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/05/2022-06.csv',\
+    'https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/05/2022-07.csv',\
+    'https://ecobici.cdmx.gob.mx/wp-content/uploads/2023/10/2022-08.csv',\
+    'https://ecobici.cdmx.gob.mx/wp-content/uploads/2023/08/202209.csv'\
+    ]
     # URL to download the Ecobici dataset
     for url in urls:
         rawData = download_data(url)
@@ -119,8 +147,10 @@ dtype_dict = {
     'Hora_Arribo': 'string'
 }
 df                 = pd.read_csv('data/cdmx_data_trips.csv',dtype=dtype_dict)
-df['Fecha_Retiro'] = pd.to_datetime(df['Fecha_Retiro'], format='%d/%m/%Y').dt.date
-df['Fecha Arribo'] = pd.to_datetime(df['Fecha Arribo'], format='%d/%m/%Y').dt.date
+print(df.head(250))
+df['Fecha_Retiro'] = pd.to_datetime(df['Fecha_Retiro'], format='%Y-%m-%d').dt.date
+df['Fecha_Arribo'] = pd.to_datetime(df['Fecha_Arribo'], format='%Y-%m-%d').dt.date
+
 df['Hora_Retiro']  = pd.to_datetime(df['Hora_Retiro'], format='%H:%M:%S').dt.hour
 df['Hora_Arribo']  = pd.to_datetime(df['Hora_Arribo'], format='%H:%M:%S').dt.hour
 
@@ -130,9 +160,9 @@ grouped_retiro = df.groupby(['Ciclo_Estacion_Retiro', 'Fecha_Retiro', 'Hora_Reti
 ).reset_index().rename(columns={'Ciclo_Estacion_Retiro': 'estacion', 'Fecha_Retiro': 'date', 'Hora_Retiro': 'hour'})
 
 # Group by the station, the date and the hour of arrival
-grouped_arribo = df.groupby(['Ciclo_Estacion_Arribo', 'Fecha Arribo', 'Hora_Arribo'],observed=False).agg(
+grouped_arribo = df.groupby(['Ciclo_Estacion_Arribo', 'Fecha_Arribo', 'Hora_Arribo'],observed=False).agg(
     n_trips_in=('Ciclo_Estacion_Arribo', 'size')
-).reset_index().rename(columns={'Ciclo_Estacion_Arribo': 'estacion', 'Fecha Arribo': 'date', 'Hora_Arribo': 'hour'})
+).reset_index().rename(columns={'Ciclo_Estacion_Arribo': 'estacion', 'Fecha_Arribo': 'date', 'Hora_Arribo': 'hour'})
 
 print(grouped_arribo.head())
 print(grouped_retiro.head())
