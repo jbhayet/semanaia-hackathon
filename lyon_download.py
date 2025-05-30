@@ -1,12 +1,12 @@
 import requests
-import pandas as pd
+import pandas as pd # type: ignore
 import sys,io
 import ast
 import numpy as np
-import matplotlib.pyplot as plt
-from meteostat import Point, Daily
+import matplotlib.pyplot as plt # type: ignore
+from meteostat import Point, Daily  # type: ignore
 from datetime import datetime
-import holidays
+import holidays # type: ignore
 
 def string_to_dict(dict_string):
     # Convert to proper json format

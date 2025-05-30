@@ -1,9 +1,10 @@
 # Description: This script downloads the Ecobici dataset from the specified URL and saves it to a local file.
-import pandas as pd
+import pandas as pd # type: ignore
 import sys
 import requests
 import io
 from datetime import datetime
+import holidays # type: ignore
 
 rawDataAll = pd.DataFrame()
 
@@ -73,7 +74,6 @@ df['Hora_Arribo']  = pd.to_datetime(df['Hora_Arribo'], format='%H:%M:%S').dt.hou
 df['Ciclo_Estacion_Retiro'] = df['Ciclo_Estacion_Retiro'].astype('category')
 df['Ciclo_EstacionArribo']  = df['Ciclo_EstacionArribo'].astype('category')
 
-
 # Group by the station, the date and the hour of withdrawal
 grouped_retiro = df.groupby(['Ciclo_Estacion_Retiro', 'Fecha_Retiro', 'Hora_Retiro'],observed=False).agg(
     n_trips_out=('Ciclo_Estacion_Retiro', 'size')
@@ -89,11 +89,24 @@ grouped_arribo = df.groupby(['Ciclo_EstacionArribo', 'Fecha Arribo', 'Hora_Arrib
 # Merge the two dataframes based on the columns estacion, date, hour
 merged = grouped_arribo.merge(grouped_retiro, on=['estacion', 'date', 'hour'], how='outer').reset_index()
 merged.drop(columns=['index'], inplace=True)
+
 # Because there can be NaN, we will replace them by zero
 merged.fillna(0, inplace=True)
 merged['n_trips_in']  = merged['n_trips_in'].astype('int16')
 merged['n_trips_out'] = merged['n_trips_out'].astype('int16')
 merged['flow']        = merged['n_trips_in'] - merged['n_trips_out']
-merged.to_csv('data/cdmx_data_flow.csv')
+merged['weekday']     = merged['date'].apply(lambda x:  x.weekday())
 
-print(merged.head())
+# Min and max date
+min_date = merged['date'].min()
+max_date = merged['date'].max()
+# Cycle through the dates
+date_range = pd.date_range(start=min_date, end=max_date, freq='D')
+# For each date in the date range, remember if it is a holiday  
+holidays_dict = {}
+for date in date_range:
+    holidays_dict[date] = 1 if date in holidays.Mexico() else 0
+merged['holiday'] = merged['date'].apply(lambda x: holidays_dict.get(pd.to_datetime(x), 0))
+merged['holiday'] = merged['holiday'].astype('uint8')
+
+merged.to_csv('data/cdmx_data_flow.csv')
