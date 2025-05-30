@@ -1,5 +1,4 @@
 import requests
-import json
 import pandas as pd
 import sys,io
 import ast
@@ -15,16 +14,15 @@ def string_to_dict(dict_string):
     return dicts
 
 nrequests = 350
-#nrequests = 2
 # Number of features to download per request
 record_features= 300000
 # total: 116 408 137
 record_offset  = 1
+#record_offset  = 83*record_features+262405
 # Read the Lyon stations CSV
-lyon_stations = pd.read_csv('lyon_stations.csv', index_col=0)
+lyon_stations = pd.read_csv('data/lyon_stations.csv', index_col=0)
 lyon_stations = lyon_stations.drop(columns=['adresse1','adresse2','code_insee','numdansarrondissement','nbbornettes','stationbonus','achevement','validite','pole']) 
 lyon_stations['commune'] = lyon_stations['commune'].astype('category')
-
 
 rawDataAll = pd.DataFrame()
 for i in range(0,nrequests):
@@ -41,10 +39,9 @@ for i in range(0,nrequests):
     
     # Convert the response content to a pandas DataFrame
     # The data is in CSV format, so we can use pd.read_csv
-    rawData = pd.read_csv(io.StringIO(answer.text), parse_dates=["horodate"])
+    rawData = pd.read_csv(io.StringIO(answer.text))
     # Remove the columns that are not needed
     rawData = rawData.drop(columns=['main_stands', 'overflow_stands'])
-
     # In the column 'total_stands', convert the string representation of a dictionary to an actual dictionary
     # and extract the 'availabilities' and 'capacity' values
     stands = rawData['total_stands'].apply(string_to_dict)
@@ -55,7 +52,8 @@ for i in range(0,nrequests):
     rawData['status']  = rawData.status.astype('category')
     rawData            = rawData.drop(columns=['total_stands'])
     # Set time date as a datetime object
-    rawData['horodate'] = pd.to_datetime(rawData['horodate'], format='%Y-%m-%d %H:%M:%S')
+    # rawData['horodate'] = pd.to_datetime(rawData['horodate'], format='%Y-%m-%d %H:%M:%S+00:00')
+    rawData['horodate'] = pd.to_datetime(rawData['horodate'], format='%Y-%m-%d %H:%M:%S%z', utc=True)
     rawData['date']    = rawData['horodate'].apply(lambda x: datetime(x.year,x.month,x.day))
     rawData['weekday'] = rawData['date'].dt.dayofweek
     rawData['year']    = rawData['date'].dt.year
@@ -69,7 +67,6 @@ for i in range(0,nrequests):
     rawData['minute']  = rawData['horodate'].dt.minute
     rawData['minute']  = rawData['minute'].astype('uint8')
     rawData['commune'] = rawData['number'].apply(lambda x:  lyon_stations.loc[x,'commune'] if x in lyon_stations.index else 'Unknown').astype('category')
-
     start              = datetime(rawData['date'].min().year, rawData['date'].min().month,rawData['date'].min().day)
     end                = datetime(rawData['date'].max().year, rawData['date'].max().month,rawData['date'].max().day)
     print(f'--- Data from {start} to {end}')
