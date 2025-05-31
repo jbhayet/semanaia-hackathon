@@ -14,6 +14,7 @@ def string_to_dict(dict_string):
     return dicts
 
 nrequests = 350
+nrequests = 100
 # Number of features to download per request
 record_features= 300000
 # total: 116 408 137
@@ -34,8 +35,8 @@ for i in range(0,nrequests):
     answer  = requests.get(access_url)
     # Check if the request was successful
     if answer.status_code != 200:
-        print('Error: ',answer.status_code)
-        break
+        print('xxx Error: ',answer.status_code)
+        continue
     
     # Convert the response content to a pandas DataFrame
     # The data is in CSV format, so we can use pd.read_csv
@@ -45,9 +46,9 @@ for i in range(0,nrequests):
     # In the column 'total_stands', convert the string representation of a dictionary to an actual dictionary
     # and extract the 'availabilities' and 'capacity' values
     stands = rawData['total_stands'].apply(string_to_dict)
-    rawData['available_bikes'] = stands.apply(lambda x: x['availabilities']['bikes']).astype('uint16')
-    rawData['stands']  = stands.apply(lambda x: x['availabilities']['stands']).astype('uint16')
-    rawData['capacity']= stands.apply(lambda x: x['capacity']).astype('uint16')
+    rawData['available_bikes'] = stands.apply(lambda x: x['availabilities']['bikes']).astype('uint8')
+    rawData['stands']  = stands.apply(lambda x: x['availabilities']['stands']).astype('uint8')
+    rawData['capacity']= stands.apply(lambda x: x['capacity']).astype('uint8')
     rawData['number']  = rawData.number.astype('uint16')
     rawData['status']  = rawData.status.astype('category')
     rawData            = rawData.drop(columns=['total_stands'])
@@ -77,9 +78,6 @@ for i in range(0,nrequests):
     rawData['tmax']= rawData['date'].apply(lambda x: weather_data.loc[x,'tmax'] if x in weather_data.index else np.nan)   
     rawData['prcp']= rawData['date'].apply(lambda x: weather_data.loc[x,'prcp'] if x in weather_data.index else np.nan)   
     rawData['wspd']= rawData['date'].apply(lambda x: weather_data.loc[x,'wspd'] if x in weather_data.index else np.nan)   
-    # Are there holidays in the dataset?
-    rawData['holiday'] = rawData['horodate'].apply(lambda x: 1 if datetime(x.year,x.month,x.day) in holidays.FR() else 0)
-    rawData['holiday'] = rawData['holiday'].astype('uint8')
     # Add the result of the request to the main DataFrame
     rawDataAll = pd.concat([rawDataAll,rawData], axis=0)
 
@@ -93,52 +91,46 @@ if not rawDataAll.empty:
     # Remove the 'status' column as it is not needed anymore
     rawDataAll = rawDataAll.drop(columns=['status'])
     # Take the mean of available_bikes, stands, capacity, tmin, tmax, prcp, wspd for each hour
-    rawDataAll = rawDataAll.groupby(['number','year', 'month', 'day', 'hour']).agg({'date': lambda x: x.iloc[0], 'available_bikes': 'mean', 'stands': 'mean', 'capacity': 'mean', 'commune': lambda x: x.iloc[0],'tmin': lambda x: x.iloc[0],'tmax': lambda x: x.iloc[0],'prcp': lambda x: x.iloc[0],'wspd': lambda x: x.iloc[0],'holiday': lambda x: x.iloc[0],'weekday': lambda x: x.iloc[0]}).round(1).reset_index()
-    # Search for the weather data 
-    rawDataAll.to_csv('lyon_data.csv', index=False) 
+    rawDataAll = rawDataAll.groupby(['number','year', 'month', 'day', 'hour']).agg({'date': lambda x: x.iloc[0], 'available_bikes': 'mean', 'stands': 'mean', 'capacity': 'mean', 'commune': lambda x: x.iloc[0],'tmin': lambda x: x.iloc[0],'tmax': lambda x: x.iloc[0],'prcp': lambda x: x.iloc[0],'wspd': lambda x: x.iloc[0],'weekday': lambda x: x.iloc[0]}).round(1).reset_index()
+
+    # Are there holidays in the dataset?
+    start              = datetime(rawDataAll['date'].min().year, rawDataAll['date'].min().month,rawDataAll['date'].min().day)
+    end                = datetime(rawDataAll['date'].max().year, rawDataAll['date'].max().month,rawDataAll['date'].max().day)
+    date_range = pd.date_range(start=start, end=end, freq='D')
+    holidays_dict = {}
+    for date in date_range:
+        holidays_dict[date] = 1 if date in holidays.France() else 0
+    rawDataAll['holiday'] = rawDataAll['date'].apply(lambda x: holidays_dict.get(pd.to_datetime(x), 0))
+    rawDataAll['holiday'] = rawDataAll['holiday'].astype('uint8')
+
+    # Save the DataFrame to a CSV file
+    rawDataAll.to_csv('data/lyon_data.csv', index=False) 
 
 
-sys.exit(0)
 
 # Load the CSV file into a DataFrame
-dtype_dic= {'capacity':'uint16', 'available_bikes':'uint16', 'stands':'uint16', 'number':'uint16', 'sta'
+dtype_dic= {'capacity':'float64', 'available_bikes':'float64', 'stands':'float64', 'number':'uint16', 'sta'
 'tus':'category', 'year':'uint16', 'month':'uint8', 'day':'uint8', 'hour':'uint8', 'minute':'uint8'}
-df = pd.read_csv('lyon_data_small.csv', dtype=dtype_dic)
+print('--- Loading the Lyon dataset...')
+df = pd.read_csv('data/lyon_data.csv', dtype=dtype_dic)
 
 stations_ids = df['number'].unique()
 n_stations   = len(stations_ids)
-print(f'There are {n_stations} stations in the dataset.')
+print(f'--- There are {n_stations} stations in the Lyon dataset.')
+print('--- A sample of the data:')
+print(df.sample(30))
 # Select one random station
 import random
 station_id = random.choice(stations_ids)
-print(f'Selected station: {station_id}')
+print(f'--- Selected station: {station_id}')
 # Filter the DataFrame for the selected station
 station_data = df[df['number'] == station_id]
 print(station_data.head())
 commune = station_data['commune'].iloc[0]
-print(f'The station is located in {commune}.')
+print(f'--- The station is located in {commune}.')
 idx          = station_data[df['hour'] == 19].index
 idx_id       = random.choice(idx)
 station_data = station_data.loc[idx_id:idx_id+47]
-print(station_data.head())
-print(station_data.tail())
 
-
-l = len(station_data['available_bikes'].values)
-t = np.arange(19,19+l)
-tt= np.arange(19,19+l)%24 
-station_data.to_csv('test.csv', index=False) 
-
-print('The data covers the following week days:{}'.format(station_data['weekday'].unique()))
-print('The weather for this day is:')
-print('Tmin: {:.1f} C, Tmax: {:.1f} C, Precipitation: {:.1f} mm, Wind Speed: {:.1f} m/s'.format(
-    station_data['tmin'].iloc[0], station_data['tmax'].iloc[0], station_data['prcp'].iloc[0], station_data['wspd'].iloc[0]))
-# Plot the data for the selected station
-plt.figure(figsize=(12, 6))
-plt.plot(t,station_data['available_bikes'].values, marker='o', label='Available Bikes')
-plt.xticks(t[::2], tt[::2])
-plt.xlabel('Hour of the Day')
-plt.ylabel('Number of Available Bikes')
-plt.title(f'Available Bikes at Station {station_id} ({commune}) Over 48 Hours')
-plt.show()
-
+n_holidays = df['holiday'].sum()
+print(f'--- Total number of holidays in the dataset: {n_holidays}')
