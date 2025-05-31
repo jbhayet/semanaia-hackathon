@@ -208,6 +208,8 @@ merged['tmax']= tmp.apply(lambda x: weather_data.loc[x,'tmax'] if x in weather_d
 merged['prcp']= tmp.apply(lambda x: weather_data.loc[x,'prcp'] if x in weather_data.index else np.nan)   
 merged['wspd']= tmp.apply(lambda x: weather_data.loc[x,'wspd'] if x in weather_data.index else np.nan)   
 merged.rename(columns={'station':'station_id'}, inplace=True)
+print('--- Columns in the merged DataFrame:')
+print(merged.columns)
 # Count how many holidays are in the dataset
 n_holidays = merged['holiday'].sum()
 print(f'--- Total number of holidays in the dataset: {n_holidays}')
@@ -219,4 +221,4 @@ print(merged.sample(100))
 print('--- First 10 records for station 85:')
 print(merged[merged['station_id'] == 85].head(10))
 # Save the merged data to a CSV file
-merged.to_csv('data/cdmx_data_flow.csv')
+merged.to_csv('data/cdmx_data_flow.csv',index=False)
