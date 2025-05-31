@@ -5,8 +5,8 @@ import requests
 import io
 from datetime import datetime
 import holidays # type: ignore
-
-rawDataAll = pd.DataFrame()
+from meteostat import Point, Daily  # type: ignore
+import numpy as np
 
 def download_data(url):
     """Download data from the specified URL and return it as a pandas DataFrame."""
@@ -84,8 +84,11 @@ def download_data(url):
     rawData['Ciclo_Estacion_Arribo'] = pd.to_numeric(rawData['Ciclo_Estacion_Arribo'], errors='coerce',downcast='integer')
     return rawData
 
+# This is the main DataFrame that will hold all the data
+rawDataAll = pd.DataFrame()
+
 # Set to true to download the data, or false to read from a local file
-download = True
+download = False
 
 if download:
     urls = [\
@@ -146,8 +149,9 @@ dtype_dict = {
     'Hora_Retiro': 'string',
     'Hora_Arribo': 'string'
 }
+
+# Read the CSV file into a DataFrame with the specified dtypes
 df                 = pd.read_csv('data/cdmx_data_trips.csv',dtype=dtype_dict)
-print(df.head(250))
 df['Fecha_Retiro'] = pd.to_datetime(df['Fecha_Retiro'], format='%Y-%m-%d').dt.date
 df['Fecha_Arribo'] = pd.to_datetime(df['Fecha_Arribo'], format='%Y-%m-%d').dt.date
 
@@ -164,15 +168,9 @@ grouped_arribo = df.groupby(['Ciclo_Estacion_Arribo', 'Fecha_Arribo', 'Hora_Arri
     n_trips_in=('Ciclo_Estacion_Arribo', 'size')
 ).reset_index().rename(columns={'Ciclo_Estacion_Arribo': 'estacion', 'Fecha_Arribo': 'date', 'Hora_Arribo': 'hour'})
 
-print(grouped_arribo.head())
-print(grouped_retiro.head())
-print(grouped_arribo['estacion'].unique())
-sys.exit(0)
-
 # Merge the two dataframes based on the columns estacion, date, hour
 merged = grouped_arribo.merge(grouped_retiro, on=['estacion', 'date', 'hour'], how='outer').reset_index()
 merged.drop(columns=['index'], inplace=True)
-
 
 # Because there can be NaN, we will replace them by zero
 merged.fillna(0, inplace=True)
@@ -193,6 +191,29 @@ for date in date_range:
 merged['holiday'] = merged['date'].apply(lambda x: holidays_dict.get(pd.to_datetime(x), 0))
 merged['holiday'] = merged['holiday'].astype('uint8')
 
+# Get weather data for the period
+print(f'--- Fetching weather data from {min_date} to {max_date}')
+cdmx_stations = pd.read_json('data/cdmx_stations.json')
+cdmx_stations = pd.DataFrame.from_records(cdmx_stations['data'].stations)
+start              = datetime(merged['date'].min().year, merged['date'].min().month,merged['date'].min().day)
+end                = datetime(merged['date'].max().year, merged['date'].max().month,merged['date'].max().day)
+weather_data  = Daily(Point(cdmx_stations.iloc[0].lat, cdmx_stations.iloc[0].lon,2000), start, end)
+weather_data  = weather_data.fetch()
+tmp           = pd.to_datetime(merged['date'])
+merged['tmin']= tmp.apply(lambda x: weather_data.loc[x,'tmin'] if x in weather_data.index else np.nan)   
+merged['tmax']= tmp.apply(lambda x: weather_data.loc[x,'tmax'] if x in weather_data.index else np.nan)   
+merged['prcp']= tmp.apply(lambda x: weather_data.loc[x,'prcp'] if x in weather_data.index else np.nan)   
+merged['wspd']= tmp.apply(lambda x: weather_data.loc[x,'wspd'] if x in weather_data.index else np.nan)   
+
+# Count how many holidays are in the dataset
+n_holidays = merged['holiday'].sum()
+print(f'--- Total number of holidays in the dataset: {n_holidays}')
+
 # Print 100 random records
+print(f'--- Total number of records: {len(merged)}')
+print('--- Sample of 100 random records:')
 print(merged.sample(100))
+print('--- First 10 records for station 207:')
+print(merged[merged['estacion'] == 207].head(10))
+# Save the merged data to a CSV file
 merged.to_csv('data/cdmx_data_flow.csv')
