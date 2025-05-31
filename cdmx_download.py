@@ -160,24 +160,27 @@ df['Hora_Arribo']  = pd.to_datetime(df['Hora_Arribo'], format='%H:%M:%S').dt.hou
 
 # Group by the station, the date and the hour of withdrawal
 grouped_retiro = df.groupby(['Ciclo_Estacion_Retiro', 'Fecha_Retiro', 'Hora_Retiro'],observed=False).agg(
-    n_trips_out=('Ciclo_Estacion_Retiro', 'size')
-).reset_index().rename(columns={'Ciclo_Estacion_Retiro': 'estacion', 'Fecha_Retiro': 'date', 'Hora_Retiro': 'hour'})
+    trips_out=('Ciclo_Estacion_Retiro', 'size')
+).reset_index().rename(columns={'Ciclo_Estacion_Retiro': 'station', 'Fecha_Retiro': 'date', 'Hora_Retiro': 'hour'})
 
 # Group by the station, the date and the hour of arrival
 grouped_arribo = df.groupby(['Ciclo_Estacion_Arribo', 'Fecha_Arribo', 'Hora_Arribo'],observed=False).agg(
-    n_trips_in=('Ciclo_Estacion_Arribo', 'size')
-).reset_index().rename(columns={'Ciclo_Estacion_Arribo': 'estacion', 'Fecha_Arribo': 'date', 'Hora_Arribo': 'hour'})
-
-# Merge the two dataframes based on the columns estacion, date, hour
-merged = grouped_arribo.merge(grouped_retiro, on=['estacion', 'date', 'hour'], how='outer').reset_index()
+    trips_in=('Ciclo_Estacion_Arribo', 'size')
+).reset_index().rename(columns={'Ciclo_Estacion_Arribo': 'station', 'Fecha_Arribo': 'date', 'Hora_Arribo': 'hour'})
+print("--- Grouped data for trips in:")
+print(grouped_arribo.sample(20))
+print("--- Grouped data for trips out:")
+print(grouped_retiro.sample(20))
+# Merge the two dataframes based on the columns station, date, hour
+merged = grouped_arribo.merge(grouped_retiro, on=['station', 'date', 'hour'], how='outer').reset_index()
 merged.drop(columns=['index'], inplace=True)
 
 # Because there can be NaN, we will replace them by zero
 merged.fillna(0, inplace=True)
-merged['n_trips_in']  = merged['n_trips_in'].astype('int16')
-merged['n_trips_out'] = merged['n_trips_out'].astype('int16')
-merged['flow']        = merged['n_trips_in'] - merged['n_trips_out']
-merged['weekday']     = merged['date'].apply(lambda x:  x.weekday())
+merged['trips_in']  = merged['trips_in'].astype('int16')
+merged['trips_out'] = merged['trips_out'].astype('int16')
+merged['flow']      = merged['trips_in'] - merged['trips_out']
+merged['weekday']   = merged['date'].apply(lambda x:  x.weekday())
 
 # Min and max date
 min_date = merged['date'].min()
@@ -195,8 +198,8 @@ merged['holiday'] = merged['holiday'].astype('uint8')
 print(f'--- Fetching weather data from {min_date} to {max_date}')
 cdmx_stations = pd.read_json('data/cdmx_stations.json')
 cdmx_stations = pd.DataFrame.from_records(cdmx_stations['data'].stations)
-start              = datetime(merged['date'].min().year, merged['date'].min().month,merged['date'].min().day)
-end                = datetime(merged['date'].max().year, merged['date'].max().month,merged['date'].max().day)
+start         = datetime(merged['date'].min().year, merged['date'].min().month,merged['date'].min().day)
+end           = datetime(merged['date'].max().year, merged['date'].max().month,merged['date'].max().day)
 weather_data  = Daily(Point(cdmx_stations.iloc[0].lat, cdmx_stations.iloc[0].lon,2000), start, end)
 weather_data  = weather_data.fetch()
 tmp           = pd.to_datetime(merged['date'])
@@ -213,7 +216,7 @@ print(f'--- Total number of holidays in the dataset: {n_holidays}')
 print(f'--- Total number of records: {len(merged)}')
 print('--- Sample of 100 random records:')
 print(merged.sample(100))
-print('--- First 10 records for station 207:')
-print(merged[merged['estacion'] == 207].head(10))
+print('--- First 10 records for station 85:')
+print(merged[merged['station'] == 85].head(10))
 # Save the merged data to a CSV file
 merged.to_csv('data/cdmx_data_flow.csv')
