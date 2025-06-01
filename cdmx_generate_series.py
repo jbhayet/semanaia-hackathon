@@ -48,8 +48,8 @@ rawDataAll = rawDataAll[rawDataAll['date']>='2022-01-01']
 # Deduce the zone for each record in the raw data
 rawDataAll['zone_id'] = pd.Series(geo_cdmx_stations.loc[rawDataAll['station_id']].zone_id.values,index=rawDataAll.index)
 rawDataAll['capacity']= pd.Series(geo_cdmx_stations.loc[rawDataAll['station_id']].capacity.values,index=rawDataAll.index)
-rawDataAll['lon']     = pd.Series(geo_cdmx_stations.loc[rawDataAll['station_id']].lon.values,index=rawDataAll.index)
-rawDataAll['lat']     = pd.Series(geo_cdmx_stations.loc[rawDataAll['station_id']].lat.values,index=rawDataAll.index)
+rawDataAll['lon']     = pd.Series(geo_cdmx_stations.loc[rawDataAll['station_id']].lon.values,index=rawDataAll.index).round(3)
+rawDataAll['lat']     = pd.Series(geo_cdmx_stations.loc[rawDataAll['station_id']].lat.values,index=rawDataAll.index).round(3)
 rawDataAll = rawDataAll.groupby(['station_id', 'date']).agg({'hour':lambda x: list(x),'flow': lambda x: list(x),'lon': lambda x: x.iloc[0],'lat': lambda x: x.iloc[0],'zone_id': lambda x: x.iloc[0],'tmin': lambda x: x.iloc[0],'tmax': lambda x: x.iloc[0],'prcp': lambda x: x.iloc[0],'wspd': lambda x: x.iloc[0],'weekday': lambda x: x.iloc[0],'holiday': lambda x: x.iloc[0],'capacity': lambda x: x.iloc[0]}).reset_index()
 # Create a new column with a vector of 24 zeros
 rawDataAll['hourly_flow'] = rawDataAll['flow'].apply(lambda x: [0]*24)
