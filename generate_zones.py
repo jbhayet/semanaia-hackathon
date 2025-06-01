@@ -24,23 +24,33 @@ geo_cdmx_stations = gpd.GeoDataFrame(
 geo_cdmx_stations = geo_cdmx_stations.to_crs(epsg=3857)
 
 # Read the GeoJSON file for Mexico City colonias
-cdmx_zones   = gpd.read_file('data/cdmx_colonias.geojson') 
-cdmx_colonias     = pd.read_json('data/cdmx_colonias.geojson',encoding='iso-8859-1')
-cdmx_zones["mun_name"]    = cdmx_colonias['features'].apply(lambda x: x['properties']['mun_name'])
-cdmx_zones["col_name"]    = cdmx_colonias['features'].apply(lambda x: x['properties']['col_name'])
-cdmx_zones.drop(columns=['year','col_area_code','col_type'], inplace=True)
-cdmx_zones = cdmx_zones.to_crs(epsg=3857)
-cdmx_zones['n_bike_stations'] = cdmx_zones.apply(lambda x: geo_cdmx_stations.within(x.geometry).sum(), axis=1)
-cdmx_zones = cdmx_zones[cdmx_zones['n_bike_stations']>0]
+cdmx_zones_geo = gpd.read_file('data/cdmx_colonias.geojson') 
+cdmx_zones_data= pd.read_json('data/cdmx_colonias.geojson',encoding='iso-8859-1')
+cdmx_zones_data["mun_name"]= cdmx_zones_data['features'].apply(lambda x: x['properties']['mun_name'])
+cdmx_zones_data["name"]    = cdmx_zones_data['features'].apply(lambda x: x['properties']['col_name'])
+cdmx_zones_data.drop(columns=['features'], inplace=True)
+cdmx_zones_geo = cdmx_zones_geo.to_crs(epsg=3857)
+cdmx_zones_data['n_bike_stations']= cdmx_zones_geo.apply(lambda x: geo_cdmx_stations.within(x.geometry).sum(), axis=1)
+cdmx_zones_geo['n_bike_stations'] = cdmx_zones_geo.apply(lambda x: geo_cdmx_stations.within(x.geometry).sum(), axis=1)
+cdmx_zones_data = cdmx_zones_data[cdmx_zones_data['n_bike_stations']>0]
+cdmx_zones_geo  = cdmx_zones_geo[cdmx_zones_geo['n_bike_stations']>0]
+
+# Merge the colonias that are too small
 to_merges = [[762,1802,1225],[38,911,39,910,757],[478,1605,1800,1458,1799],[759,1527,1187],[1006,1609,1417,1464],[302,579,1804,488,1107,231],[89,637,481,1710,1222],[1224,1321,1322,1323],[47,1227,236],[477,1320,1530,1047,1459,1318],[244,1256,1011,823,1488,1490,1764],[1,241,1067,820,1015,3,119],[87,342,1319,1529,813],[758,1457,1707,1100],[343,432,1528,1801,1662],[40,1045,1412,1373],[344,1219,296,1661],[76,1028,139,731,942],[46,95,352,349],[580,581,1712],[347,1669,1415],[90,484,1105],[761,1416],[230,298,815,482],[477,1663],[88,1666,575],[1003,1607,1052,1106],[45,486,1050,913,1803,1670],[161,345,297,573],[402,1384,1750,1751,875,1346,1495],[578,1193,1463],[684,1220,1191,1226]]
 for to_merge in to_merges:
     for i in range(1,len(to_merge)):  
         # Merge two colonias
-        cdmx_zones.loc[to_merge[0],'geometry'] = cdmx_zones.loc[to_merge[0],'geometry'].union(cdmx_zones.loc[to_merge[i],'geometry'])
+        cdmx_zones_geo.loc[to_merge[0],'geometry'] = cdmx_zones_geo.loc[to_merge[0],'geometry'].union(cdmx_zones_geo.loc[to_merge[i],'geometry'])
         # Drop the second colonia
-        cdmx_zones = cdmx_zones.drop(index=to_merge[i])
-cdmx_zones['n_bike_stations'] = cdmx_zones.apply(lambda x: geo_cdmx_stations.within(x.geometry).sum(), axis=1)
-cdmx_zones.to_csv('data/cdmx_zones.csv', index=False)
+        cdmx_zones_geo = cdmx_zones_geo.drop(index=to_merge[i])
+        cdmx_zones_data = cdmx_zones_data.drop(index=to_merge[i])
+cdmx_zones_data['n_bike_stations'] = cdmx_zones_geo.apply(lambda x: geo_cdmx_stations.within(x.geometry).sum(), axis=1)
+cdmx_zones_geo.drop(columns=['n_bike_stations'], inplace=True)
+cdmx_zones_data.reset_index(drop=True, inplace=True)
+cdmx_zones_geo.reset_index(drop=True, inplace=True)
+# Save the data to CSV and GeoJSON files
+cdmx_zones_data.to_csv('data/cdmx_zones.csv')
+cdmx_zones_geo.to_file('data/cdmx_zones_geo.geojson', driver='GeoJSON')
 
 ##################################################################################################
 # Read the Lyon stations CSV
@@ -116,10 +126,10 @@ ctx.add_basemap(ax[0])
 # Plotting the Mexico City data
 ax[1].set_title('Mexico City Bike Stations')
 # Plot the colonias in Mexico City
-cdmx_zones.boundary.plot(ax=ax[1],color='black')
+cdmx_zones_geo.boundary.plot(ax=ax[1],color='black')
 geo_cdmx_stations.plot("capacity", cmap="OrRd", ax=ax[1])
 # Plot the colonias ids too
-cdmx_zones.index.to_series().apply(lambda x: ax[1].text(cdmx_zones.loc[x,'geometry'].centroid.x, cdmx_zones.loc[x,'geometry'].centroid.y, x, fontsize=8, ha='center', va='center', color='black'))
+cdmx_zones_geo.index.to_series().apply(lambda x: ax[1].text(cdmx_zones_geo.loc[x,'geometry'].centroid.x, cdmx_zones_geo.loc[x,'geometry'].centroid.y, x, fontsize=8, ha='center', va='center', color='black'))
 ax[1].set_axis_off()
 ax[1].add_artist(ScaleBar(1))
 ctx.add_basemap(ax[1])
