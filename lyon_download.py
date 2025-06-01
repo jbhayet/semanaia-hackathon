@@ -13,12 +13,11 @@ def string_to_dict(dict_string):
     dicts = ast.literal_eval(ast.literal_eval(dict_string))
     return dicts
 
-nrequests = 350
-nrequests = 100
+nrequests = 315
 # Number of features to download per request
 record_features= 300000
 # total: 116 408 137
-record_offset  = 1+100*record_features
+record_offset  = 1+300*record_features
 # Read the Lyon stations CSV
 lyon_stations = pd.read_csv('data/lyon_stations.csv', index_col=0)
 lyon_stations = lyon_stations.drop(columns=['adresse1','adresse2','code_insee','numdansarrondissement','nbbornettes','stationbonus','achevement','validite','pole']) 
