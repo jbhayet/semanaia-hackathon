@@ -88,7 +88,7 @@ def download_data(url):
 rawDataAll = pd.DataFrame()
 
 # Set to true to download the data, or false to read from a local file
-download = False
+download = True
 
 if download:
     urls = [\
@@ -128,6 +128,27 @@ if download:
 
 if download:
     urls = ['https://ecobici.cdmx.gob.mx/wp-content/uploads/2023/11/datosabiertos_2023_octubre.csv','https://ecobici.cdmx.gob.mx/wp-content/uploads/2023/12/datosabiertos_2023_noviembre.csv','https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/01/datos_abiertos_2023_diciembre.csv']
+    # URL to download the Ecobici dataset
+    for url in urls:
+        rawData = download_data(url)
+        # Add the result of the request to the main DataFrame
+        rawDataAll = pd.concat([rawDataAll,rawData], axis=0)
+
+if download:  # Set to True to download the data for 2024
+    urls = [\
+        'https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/02/ecobici_2024_enero.csv',\
+        'https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/03/2024-02.csv',\
+        'https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/04/datos_abiertos_2024_03-1-1.csv',\
+        'https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/05/datos_abiertos_2024_04.csv',\
+        'https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/06/2024-05-1.csv',\
+        'https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/07/2024-06.csv',\
+        'https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/08/datos_abiertos_2024_07.csv',\
+        'https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/09/2024-08.csv',\
+        'https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/10/2024-09.csv',\
+        'https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/11/2024-10.csv',\
+        'https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/12/2024-11.csv',\
+        'https://ecobici.cdmx.gob.mx/wp-content/uploads/2025/01/2024-12.csv'\
+        ]
     # URL to download the Ecobici dataset
     for url in urls:
         rawData = download_data(url)
