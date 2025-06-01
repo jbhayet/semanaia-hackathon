@@ -43,33 +43,48 @@ geo_lyon_stations          = geo_lyon_stations.to_crs(epsg=3857).set_index('idst
 rawDataAll['station_name'] = pd.Series(geo_lyon_stations.loc[rawDataAll['station_id']].nom.values,index=rawDataAll.index)
 rawDataAll['zone_id']      = pd.Series(geo_lyon_stations.loc[rawDataAll['station_id']].zone_id.values,index=rawDataAll.index)
 rawDataAll['zone_name']    = pd.Series(geo_lyon_stations.loc[rawDataAll['station_id']].zone_name.values,index=rawDataAll.index)
+rawDataAll['lon']    = pd.Series(geo_lyon_stations.loc[rawDataAll['station_id']].lon.values,index=rawDataAll.index).round(3)
+rawDataAll['lat']    = pd.Series(geo_lyon_stations.loc[rawDataAll['station_id']].lat.values,index=rawDataAll.index).round(3)
 
 
 grouped = rawDataAll.groupby(['station_id', 'date', 'hour']).agg({'available_bikes': 'mean', 'stands': 'mean', 'capacity': 'mean'}).reset_index()
-# A dataframe with the available bikes each day at 4:00AM
-available_4am = grouped[grouped['hour'] == 4]
+# A dataframe with the available bikes each day at 0:00AM
+available_0am = grouped[grouped['hour'] == 0]
 # Set the index to 'station_id' and 'date'
-available_4am.set_index(['station_id', 'date'], inplace=True)
-# For each entry, find the number of available bikes in this station at 4:00AM in the same day
+available_0am.set_index(['station_id', 'date'], inplace=True)
+# For each entry, find the number of available bikes in this station at 0:00AM in the same day
 tmp = rawDataAll[['station_id','date']].apply(tuple, axis=1).values
 
-rawDataAll['available_bikes_4am'] = rawDataAll.apply(lambda x: available_4am.loc[(x['station_id'], x['date']), 'available_bikes'] if (x['station_id'], x['date']) in available_4am.index else np.nan, axis=1) 
+rawDataAll['available_bikes_0am'] = rawDataAll.apply(lambda x: available_0am.loc[(x['station_id'], x['date']), 'available_bikes'] if (x['station_id'], x['date']) in available_0am.index else np.nan, axis=1) 
 # Count the number of nan
-n_available_bikes_4am = rawDataAll['available_bikes_4am'].isna().sum()
-print(f"--- Number of records with no available bikes at 4:00AM: {n_available_bikes_4am} out of {len(rawDataAll)} ({n_available_bikes_4am/len(rawDataAll)*100:.2f}%)")
-# Remove the records with no available bikes at 4:00AM
-rawDataAll = rawDataAll[~rawDataAll['available_bikes_4am'].isna()]
+n_available_bikes_0am = rawDataAll['available_bikes_0am'].isna().sum()
+print(f"--- Number of records with no available bikes at 0:00AM: {n_available_bikes_0am} out of {len(rawDataAll)} ({n_available_bikes_0am/len(rawDataAll)*100:.2f}%)")
+# Remove the records with no available bikes at 0:00AM
+rawDataAll = rawDataAll[~rawDataAll['available_bikes_0am'].isna()]
 
-# Generate the normalized occupation rate: Each day, the occupation rate is the number of available bikes at the current hour minus the number of available bikes at 4:00AM, divided by the capacity of the station.
-rawDataAll['occupation']= (rawDataAll['available_bikes']-rawDataAll['available_bikes_4am']) / rawDataAll['capacity']
+# Generate the normalized occupation rate: Each day, the occupation rate is the number of available bikes at the current hour minus the number of available bikes at 0:00AM, divided by the capacity of the station.
+rawDataAll['occupation']= (rawDataAll['available_bikes']-rawDataAll['available_bikes_0am']) / rawDataAll['capacity']
 rawDataAll['occupation'] = rawDataAll['occupation'].round(3)
-grouped = rawDataAll.groupby(['station_id', 'date']).agg({'occupation':lambda x: list(x),'zone_id': lambda x: x.iloc[0],'tmin': lambda x: x.iloc[0],'tmax': lambda x: x.iloc[0],'prcp': lambda x: x.iloc[0],'wspd': lambda x: x.iloc[0],'weekday': lambda x: x.iloc[0],'holiday': lambda x: x.iloc[0]}).reset_index()
+grouped = rawDataAll.groupby(['station_id', 'date']).agg({'occupation':lambda x: list(x),'zone_id': lambda x: x.iloc[0],'lon': lambda x: x.iloc[0],'lat': lambda x: x.iloc[0],'tmin': lambda x: x.iloc[0],'tmax': lambda x: x.iloc[0],'prcp': lambda x: x.iloc[0],'wspd': lambda x: x.iloc[0],'weekday': lambda x: x.iloc[0],'holiday': lambda x: x.iloc[0]}).reset_index()
 
 # Determine the size of the list in each row
 grouped['n_occupations'] = grouped['occupation'].apply(lambda x: len(x))
 # Check which rows have less than 24 occupations
 grouped = grouped[grouped['n_occupations'] == 24]
+grouped = grouped.sample(frac=1)
 # Remove the 'date' and 'n_occupations' columns
-grouped = grouped.drop(columns=['n_occupations','date'])
+grouped = grouped.drop(columns=['n_occupations','date','station_id'])
 
-print(grouped.sample(100))
+
+# Take 90 percent of the data for training and 10 percent for testing
+train_size = int(len(grouped) * 0.9)
+grouped_train = grouped[:train_size]
+grouped_test = grouped[train_size:]
+# Save the training and testing data to CSV files
+grouped_train.to_csv('data/lyon_data_series_train.csv', index=False)
+grouped_test.to_csv('data/lyon_data_series_test.csv', index=False)
+
+# A version of the testing data without the 'occupation' column
+grouped_test_no_occupation = grouped_test.drop(columns=['occupation'])
+# Save the testing data without the 'occupation' column to a CSV file
+grouped_test_no_occupation.to_csv('data/lyon_data_series_test_no_occupation.csv', index=False)
