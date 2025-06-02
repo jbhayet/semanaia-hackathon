@@ -67,6 +67,10 @@ for i in range(len(rawDataAll)):
 rawDataAll.rename(columns={'hourly_flow': 'occupation'}, inplace=True)        
 rawDataAll = rawDataAll.drop(columns=['flow','hour','date', 'station_id','capacity'])
 
+# Remove any rows with NaN values
+rawDataAll = rawDataAll.dropna()
+# Reset the index
+rawDataAll.reset_index(drop=True, inplace=True)
 # Take 90 percent of the data for training and 10 percent for testing
 train_size = int(len(rawDataAll) * 0.9)
 rawDataAll_train = rawDataAll[:train_size]

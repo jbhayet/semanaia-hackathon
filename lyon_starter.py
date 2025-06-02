@@ -1,4 +1,4 @@
-from sklearn.neighbors import KNeighborsRegressor
+from sklearn.neighbors import KNeighborsRegressor # type: ignore
 from metrics import regression_evaluate
 from utils import read_test_csv,read_test_csv_full,read_train_csv,visualize_prediction_samples
 
