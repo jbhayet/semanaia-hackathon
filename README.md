@@ -23,3 +23,7 @@ A short description of the content of this repository:
 * [generate_zones.py](https://github.com/jbhayet/semanaia-hackathon/blob/main/generate_zones.py): this script uses the geographical data from the french communes delimitations, the 'colonias' delimitations in CdMX and uses them to produce (somewhat arbitrarily in the case of CdMX) a set of around 20-30 zones per city.
 * [lyon_generate_series.py](https://github.com/jbhayet/semanaia-hackathon/blob/main/lyon_generate_series.py) and [cdmx_generate_cities.py](https://github.com/jbhayet/semanaia-hackathon/blob/main/cmdx_generate_series.py): these two scripts use the cleaned, downloaded data to produce 24-h series of occupation data per station and date. These are the data you are provided with for the hackathon.
  
+Use this Jupyter notebook as your starting point, either locally or through Google colab:
+
+* [Download notebook](https://github.com/jbhayet/semanaia-hackathon/blob/main/IA_Hackathon_starter.ipynb)
+* [Run on Colab](https://colab.research.google.com/github/jbhayet/semanaia-hackathon/blob/main/IA_Hackathon_starter.ipynb)
