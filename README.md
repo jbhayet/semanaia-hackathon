@@ -10,7 +10,7 @@ The raw data are rather distinct, but we have collected them and reformatted the
 
 The Hackathon will have two challenges around these data:
 
-* A **data exploration and visualization challenge**: This is a free challenge, where we provide you cleaned data from the two open data systens in CdMX and Lyon. You are free to use whatever resource, data analysis tool or visualization tool to provide some interesting comparative insight about the two cities. As an example, you could cluster the bike stations into groups with similar time evolution of the bike availability (i.e., residential areas, business areas, entertainment areas...). 
+* A **data storytelling challenge**: This is a free challenge, where we provide you cleaned data from the two open data systens in CdMX and Lyon and you have to tell us a *story* about these data. You are free to use whatever resource, data analysis tool or visualization tool to provide some interesting comparative insight about the two cities. As an example, you could cluster the bike stations into groups with similar time evolution of the bike availability and identify what could be residential areas, business areas, entertainment areas.... 
 
 * A **prediction task**: Given geographical and weather conditions, what should be the time evolution of the bike availability? As a baseline, we provide you with a very simple regressor to do that, the KNN regressor (in the file lyon_starter.py).
 
