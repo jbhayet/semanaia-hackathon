@@ -2,7 +2,6 @@
 import sys
 import os
 import pandas as pd # type: ignore
-import holidays # type: ignore
 import geopandas as gpd # type: ignore
 import numpy as np
 lyon_data_file = 'data/lyon_data.csv'

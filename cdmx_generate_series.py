@@ -2,7 +2,6 @@
 import sys
 import os
 import pandas as pd # type: ignore
-import holidays # type: ignore
 import geopandas as gpd # type: ignore
 
 cdmx_flow_file = 'data/cdmx_data_flow.csv'

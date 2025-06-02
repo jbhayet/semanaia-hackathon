@@ -1,8 +1,5 @@
 import os
 import pandas as pd  # type: ignore
-import holidays  # type: ignore
-import geopandas as gpd  # type: ignore
-import numpy as np
 
 # Read data/lyon_data01.csv
 lyon_data_file01 = 'data/lyon_data01.csv'
