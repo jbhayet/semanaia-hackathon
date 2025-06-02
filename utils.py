@@ -1,7 +1,7 @@
-import pandas as pd
+import pandas as pd # type: ignore
 import numpy as np
 import ast
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt # type: ignore
 
 def read_train_csv(train_file):
     print(f"--- Reading train data from {train_file}")
