@@ -1,0 +1,10 @@
+requests
+pandas
+geopandas
+numpy
+scikit-learn
+matplotlib
+scikit-learn
+ast
+datetime
+holidays
