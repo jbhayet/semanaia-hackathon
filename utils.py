@@ -33,16 +33,12 @@ def read_test_csv_full(test_file):
     source = data_test.to_numpy()
     return source
 
-def visualize_prediction_samples(source,prediction,ground_truth):
-
+def visualize_prediction_daily_sequences(sequence):
     nsamples = 15
-    row_ids = np.random.random_integers(0,source.shape[0],nsamples)
-    source_sample     = source[row_ids]
-    prediction_sample = prediction[row_ids]
-    ground_truth_sample = ground_truth[row_ids]
+    row_ids = np.random.random_integers(0,sequence.shape[0],nsamples)
+    sequence_sample     = sequence[row_ids]
     fig, ax = plt.subplots(3,5,figsize=(8, 6))
-    plt.suptitle('A few samples of prediction/ground truth pairs')
+    plt.suptitle('A few samples of hourly occupation data over a random set of stations', fontsize=16)
     for i in range(nsamples):
-        ax[i//5][i%5].plot(prediction_sample[i],color='red')
-        ax[i//5][i%5].plot(ground_truth_sample[i],color='green')
+        ax[i//5][i%5].plot(sequence_sample[i],color='green')
     plt.show()
