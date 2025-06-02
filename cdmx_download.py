@@ -8,7 +8,7 @@ import holidays # type: ignore
 from meteostat import Point, Daily  # type: ignore
 import numpy as np
 
-def download_data(url):
+def download_data_cdmx(url):
     """Download data from the specified URL and return it as a pandas DataFrame."""
     print(f"--- Downloading data from {url}")    
     response = requests.get(url)
@@ -88,7 +88,7 @@ def download_data(url):
 rawDataAll = pd.DataFrame()
 
 # Set to true to download the data, or false to read from a local file
-download = True
+download = False
 
 if download:
     urls = [\
@@ -104,7 +104,7 @@ if download:
     ]
     # URL to download the Ecobici dataset
     for url in urls:
-        rawData = download_data(url)
+        rawData = download_data_cdmx(url)
         # Add the result of the request to the main DataFrame
         rawDataAll = pd.concat([rawDataAll,rawData], axis=0)
 
@@ -113,7 +113,7 @@ if download:
     for txt in ['10','11','12']:
         # Download the dataset for month i+1
         url = "https://ecobici.cdmx.gob.mx/wp-content/uploads/2023/10/ecobici_2022_{}.csv".format(txt)
-        rawData = download_data(url)
+        rawData = download_data_cdmx(url)
         # Add the result of the request to the main DataFrame
         rawDataAll = pd.concat([rawDataAll,rawData], axis=0)
 
@@ -122,7 +122,7 @@ if download:
     for txt in ['01','02','03','04','05','06','07','08','09']:
         # Download the dataset for month i+1
         url = "https://ecobici.cdmx.gob.mx/wp-content/uploads/2023/10/ecobici_2023_{}.csv".format(txt)
-        rawData = download_data(url)
+        rawData = download_data_cdmx(url)
         # Add the result of the request to the main DataFrame
         rawDataAll = pd.concat([rawDataAll,rawData], axis=0)
 
@@ -130,7 +130,7 @@ if download:
     urls = ['https://ecobici.cdmx.gob.mx/wp-content/uploads/2023/11/datosabiertos_2023_octubre.csv','https://ecobici.cdmx.gob.mx/wp-content/uploads/2023/12/datosabiertos_2023_noviembre.csv','https://ecobici.cdmx.gob.mx/wp-content/uploads/2024/01/datos_abiertos_2023_diciembre.csv']
     # URL to download the Ecobici dataset
     for url in urls:
-        rawData = download_data(url)
+        rawData = download_data_cdmx(url)
         # Add the result of the request to the main DataFrame
         rawDataAll = pd.concat([rawDataAll,rawData], axis=0)
 
@@ -151,7 +151,7 @@ if download:  # Set to True to download the data for 2024
         ]
     # URL to download the Ecobici dataset
     for url in urls:
-        rawData = download_data(url)
+        rawData = download_data_cdmx(url)
         # Add the result of the request to the main DataFrame
         rawDataAll = pd.concat([rawDataAll,rawData], axis=0)
 
